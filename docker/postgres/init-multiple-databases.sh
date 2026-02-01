@@ -1,28 +1,24 @@
 #!/bin/bash
-
+#!/bin/bash
 set -e
-set -u
 
-function create_user_and_database() {
-    local database=$1
-    local username=$2
-    local password=$3
-    echo "Creating user '$username' and database '$database'"
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-        CREATE USER $username WITH PASSWORD '$password';
-        CREATE DATABASE $database;
-        GRANT ALL PRIVILEGES ON DATABASE $database TO $username;
+# Create metadata database
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    CREATE DATABASE $METADATA_DATABASE_NAME;
+    CREATE USER $METADATA_DATABASE_USERNAME WITH PASSWORD '$METADATA_DATABASE_PASSWORD';
+    GRANT ALL PRIVILEGES ON DATABASE $METADATA_DATABASE_NAME TO $METADATA_DATABASE_USERNAME;
 EOSQL
-    echo "  User '$username' and database '$database' created successfully"
-}
 
-# Metadata database
-create_user_and_database $METADATA_DATABASE_NAME $METADATA_DATABASE_USERNAME $METADATA_DATABASE_PASSWORD
+# Create ELT database
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    CREATE DATABASE $ELT_DATABASE_NAME;
+    CREATE USER $ELT_DATABASE_USERNAME WITH PASSWORD '$ELT_DATABASE_PASSWORD';
+    GRANT ALL PRIVILEGES ON DATABASE $ELT_DATABASE_NAME TO $ELT_DATABASE_USERNAME;
+EOSQL
 
-# Celery result backend database
-create_user_and_database $CELERY_BACKEND_NAME $CELERY_BACKEND_USERNAME $CELERY_BACKEND_PASSWORD
-
-# ELT database
-create_user_and_database $ELT_DATABASE_NAME $ELT_DATABASE_USERNAME $ELT_DATABASE_PASSWORD
-
-echo "All databases and users created successfully"
+# Create Celery database
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    CREATE DATABASE $CELERY_BACKEND_NAME;
+    CREATE USER $CELERY_BACKEND_USERNAME WITH PASSWORD '$CELERY_BACKEND_PASSWORD';
+    GRANT ALL PRIVILEGES ON DATABASE $CELERY_BACKEND_NAME TO $CELERY_BACKEND_USERNAME;
+EOSQL
